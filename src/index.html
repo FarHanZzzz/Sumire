@@ -9,18 +9,70 @@
 </head>
 <body>
     <nav class="navbar">
-        <h1>Anime News Hub</h1>
+        <h1>🌟 Anime News Hub</h1>
         <div class="nav-links">
-            <a href="#home">Home</a>
-            <a href="#watchlist">My Watchlist</a>
-            <button id="refresh-news" class="button">Refresh News</button>
+            <a href="#new-anime">� New</a>
+            <a href="#classic">🎌 Classic</a>
+            <a href="#popular">🔥 Popular</a>
+            <a href="#underrated">� Hidden</a>
+            <a href="#watchlist">📺 Watchlist</a>
         </div>
     </nav>
 
     <main>
-        <div id="news-container" class="news-grid"></div>
-        <div id="watchlist-container" class="watchlist-grid"></div>
+        <!-- New Upcoming Anime Section -->
+        <section id="new-anime-section" class="section-container">
+            <div class="section-header">
+                <h2>🆕 New Upcoming Anime</h2>
+                <p>Discover the most anticipated anime series coming soon</p>
+            </div>
+            <div id="new-anime-container" class="anime-grid"></div>
+        </section>
+
+        <!-- Classic 90s Anime Section -->
+        <section id="classic-anime-section" class="section-container">
+            <div class="section-header">
+                <h2>🎌 Classic 90s Anime</h2>
+                <p>Nostalgic masterpieces that defined a generation</p>
+            </div>
+            <div id="classic-anime-container" class="anime-grid"></div>
+        </section>
+
+        <!-- Popular Anime Section -->
+        <section id="popular-anime-section" class="section-container">
+            <div class="section-header">
+                <h2>🔥 Most Popular Anime</h2>
+                <p>The hottest anime everyone is talking about</p>
+            </div>
+            <div id="popular-anime-container" class="anime-grid"></div>
+        </section>
+
+        <!-- Underrated Favorites Section -->
+        <section id="underrated-anime-section" class="section-container">
+            <div class="section-header">
+                <h2>💎 Hidden Gems</h2>
+                <p>Underrated masterpieces that deserve more love</p>
+            </div>
+            <div id="underrated-anime-container" class="anime-grid"></div>
+        </section>
+        
+        <!-- Watchlist Section -->
+        <section id="watchlist-section" class="section-container" style="display: none;">
+            <div class="section-header">
+                <h2>📺 My Watchlist</h2>
+                <p>Your curated collection of anime to watch</p>
+            </div>
+            <div id="watchlist-container" class="watchlist-grid"></div>
+        </section>
     </main>
+
+    <!-- Anime Details Modal -->
+    <div id="anime-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div id="modal-body"></div>
+        </div>
+    </div>
 
     <script src="app.js" type="module"></script>
 </body>
