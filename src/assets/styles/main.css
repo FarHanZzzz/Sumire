@@ -1,19 +1,35 @@
 :root {
-    --primary-blue: #1e3a5f;
-    --secondary-blue: #4a90e2;
-    --accent-blue: #6bb6ff;
-    --warm-accent: #ff6b47;
-    --warm-secondary: #ffa726;
-    --warm-bg: #fef9f5;
-    --text-dark: #2c3e50;
-    --text-light: #7f8c8d;
-    --card-shadow: 0 20px 60px rgba(30, 58, 95, 0.15);
-    --card-shadow-hover: 0 30px 80px rgba(30, 58, 95, 0.25);
-    --glass-bg: rgba(255, 255, 255, 0.95);
-    --glass-border: rgba(74, 144, 226, 0.1);
-    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --gradient-warm: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
-    --gradient-card: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+    /* Core brand (Crunchyroll-inspired warm palette) */
+    --brand-orange: #ff7b23;
+    --brand-orange-alt: #ff8e42;
+    --brand-deep: #e85600;
+    --brand-accent-red: #ff3d2e;
+    --brand-accent-soft: #ffd1b0;
+    --brand-gradient: linear-gradient(135deg, #ff7b23 0%, #ff8e42 40%, #ff3d2e 100%);
+
+    /* Supporting neutrals & depth */
+    --bg-deep: #0f141a;
+    --bg-panel: #1b242c;
+    --bg-panel-alt: #232e38;
+    --bg-soft: #fef9f5;
+
+    /* Legacy semantic aliases (mapped) */
+    --primary-blue: #1b242c; /* repurposed as dark base */
+    --secondary-blue: #ff7b23; /* repurposed to main accent */
+    --accent-blue: #ff3d2e; /* secondary accent now red */
+    --warm-accent: var(--brand-orange);
+    --warm-secondary: var(--brand-accent-red);
+    --warm-bg: var(--bg-soft);
+    --text-dark: #1a1f23;
+    --text-light: #6b747c;
+    --text-strong: #14181c;
+    --card-shadow: 0 14px 40px -8px rgba(0,0,0,0.35);
+    --card-shadow-hover: 0 22px 60px -6px rgba(0,0,0,0.55);
+    --glass-bg: rgba(255, 255, 255, 0.07);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --gradient-primary: var(--brand-gradient);
+    --gradient-warm: linear-gradient(135deg, #ff7b23 0%, #ffb084 60%, #ffe2d1 100%);
+    --gradient-card: linear-gradient(145deg, #ffffff 0%, #fff7f1 100%);
 }
 
 * {
@@ -24,11 +40,118 @@
 
 body {
     font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 20%, #fef9f5 100%);
+    background: radial-gradient(circle at 20% 15%, #ffb37a 0%, #ff9850 18%, #1b242c 65%, #12191f 100%);
     background-attachment: fixed;
     color: var(--text-dark);
     line-height: 1.6;
     overflow-x: hidden;
+}
+
+/* Filter Bar */
+#filter-bar.filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 1rem 2rem 1.2rem;
+    background: rgba(27,36,44,0.55);
+    backdrop-filter: blur(14px) saturate(140%);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    position: sticky;
+    top: 72px; /* under navbar */
+    z-index: 950;
+    box-shadow: 0 8px 28px -10px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.04);
+}
+
+.filter-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    width: 100%;
+    align-items: center;
+}
+
+.filter-input {
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 0.65rem 0.9rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border .25s ease, background .25s ease, box-shadow .25s ease;
+    min-width: 160px;
+}
+
+.filter-input:focus {
+    border-color: var(--brand-orange);
+    background: rgba(255,255,255,0.15);
+    box-shadow: 0 0 0 2px rgba(255,115,30,0.35);
+}
+
+/* Force consistent dark theming for select/input across browsers (prevent white flash) */
+.filter-input,
+.filter-input:hover,
+.filter-input:focus {
+    background-color: rgba(20,26,32,0.65);
+    backdrop-filter: blur(6px) saturate(140%);
+    -webkit-backdrop-filter: blur(6px) saturate(140%);
+    color: #f5f7fa;
+}
+
+.filter-input:hover {
+    border-color: rgba(255,140,60,0.65);
+}
+
+.filter-input::placeholder {
+    color: rgba(255,255,255,0.55);
+}
+
+/* Select dropdown options */
+select.filter-input option {
+    background: #1b242c;
+    color: #f5f7fa;
+}
+
+/* Remove default white background on Edge/IE focus */
+select.filter-input:focus::-ms-value { background: transparent; color: #fff; }
+
+/* Autofill handling (Chrome) */
+input.filter-input:-webkit-autofill,
+input.filter-input:-webkit-autofill:hover,
+input.filter-input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #fff;
+    transition: background-color 9999s ease-in-out 0s;
+    caret-color: #fff;
+}
+
+#searchInput {
+    flex: 1 1 260px;
+    min-width: 220px;
+}
+
+.button-secondary {
+    background: linear-gradient(90deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.25);
+    padding: 0.7rem 1.4rem;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all .3s ease;
+    letter-spacing: .5px;
+    backdrop-filter: blur(4px);
+    position: relative;
+    overflow: hidden;
+}
+
+.button-secondary:hover {
+    background: linear-gradient(90deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.12) 100%);
+    transform: translateY(-2px);
+}
+
+@media (max-width: 840px) {
+    #filter-bar.filter-bar { top: 120px; }
 }
 
 h1, h2, h3 {
@@ -76,30 +199,47 @@ a:hover {
     background-color: #1a7bbf; /* Darker blue on hover */
 }
 
-.navbar {
-    background: rgba(30, 58, 95, 0.95);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 1.5rem 3rem;
+ .navbar {
+    background: linear-gradient(90deg, rgba(27,36,44,0.9) 0%, rgba(35,46,56,0.9) 40%, rgba(27,36,44,0.9) 100%);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    padding: 1.3rem 3rem 1.1rem;
     color: white;
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    align-items: flex-end;
+    box-shadow: 0 10px 28px -8px rgba(0,0,0,0.55);
     position: sticky;
     top: 0;
     z-index: 1000;
-    transition: all 0.3s ease;
-}
+    transition: background .35s ease, box-shadow .35s ease;
+ }
 
-.navbar h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    background: linear-gradient(45deg, #ffffff, #6bb6ff);
+.navbar h1.brand {
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    background: linear-gradient(92deg, #ffffff 0%, #ffe5d2 40%, #ffb37a 70%, #ffffff 100%);
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 30px rgba(107, 182, 255, 0.5);
+    filter: drop-shadow(0 6px 18px rgba(255,110,40,0.35));
+    position: relative;
+}
+
+.navbar h1.brand::after {
+    content: '';
+    position: absolute;
+    left: 2px;
+    bottom: -6px;
+    width: 58%;
+    height: 4px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--brand-orange) 0%, var(--brand-accent-red) 100%);
+    box-shadow: 0 0 12px 2px rgba(255,94,0,0.55);
 }
 
 .news-grid, .watchlist-grid {
@@ -118,17 +258,18 @@ a:hover {
     gap: 2rem;
 }
 
-.nav-links a {
-    color: rgba(255, 255, 255, 0.9);
+ .nav-links a {
+    color: rgba(255, 255, 255, 0.82);
     text-decoration: none;
-    font-weight: 500;
-    font-size: 1.1rem;
-    padding: 0.8rem 1.5rem;
-    border-radius: 50px;
+    font-weight: 600;
+    font-size: 1.02rem;
+    padding: 0.75rem 1.35rem .7rem;
+    border-radius: 14px;
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
-}
+    letter-spacing: .3px;
+ }
 
 .nav-links a::before {
     content: '';
@@ -145,16 +286,16 @@ a:hover {
     left: 100%;
 }
 
-.nav-links a:hover, .nav-links a.active {
-    color: white;
-    background: rgba(255, 255, 255, 0.15);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+ .nav-links a:hover, .nav-links a.active {
+    color: #fff;
+    background: linear-gradient(105deg, rgba(255,123,35,0.18) 0%, rgba(255,102,0,0.28) 100%);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px -6px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,140,60,0.25);
 }
 
 .nav-links a.active {
-    background: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+    background: linear-gradient(105deg, rgba(255,123,35,0.32) 0%, rgba(255,61,46,0.42) 100%);
+    box-shadow: 0 0 0 1px rgba(255,104,26,0.5), 0 6px 20px -4px rgba(255,95,0,0.45);
 }
 
 .nav-links .button {

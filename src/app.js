@@ -3,6 +3,7 @@ import {
     fetchClassic90sAnime, 
     fetchPopularAnime, 
     fetchUnderratedAnime,
+    fetchHotzAnime,
     getAnimeDetails 
 } from './services/newsApi.js';
 import { addToWatchlist, removeFromWatchlist, getWatchlist } from './services/watchlistService.js';
@@ -14,9 +15,33 @@ class App {
             classicAnime: document.getElementById('classic-anime-container'),
             popularAnime: document.getElementById('popular-anime-container'),
             underratedAnime: document.getElementById('underrated-anime-container'),
+            hotzAnime: document.getElementById('hotz-anime-container'),
             watchlist: document.getElementById('watchlist-container')
         };
         this.modal = document.getElementById('anime-modal');
+        this.watchlistContainer = document.getElementById('watchlist-container'); // fix reference used later
+
+        // pagination state per section
+        this.pages = {
+            newAnime: 1,
+            classicAnime: 1,
+            popularAnime: 1,
+            underratedAnime: 1,
+            hotzAnime: 1
+        };
+        this.pageSize = 12;
+
+        // in-memory registry for dedupe
+        this.globalIds = new Set();
+        // cache for client-side filtering
+        this.sectionCache = {
+            newAnime: [],
+            classicAnime: [],
+            popularAnime: [],
+            underratedAnime: [],
+            hotzAnime: []
+        };
+
         this.init();
     }
 
@@ -31,35 +56,181 @@ class App {
     }
 
     async loadAllSections() {
-        const sections = [
-            { name: 'newAnime', fetch: fetchNewUpcomingAnime, container: this.containers.newAnime },
-            { name: 'classicAnime', fetch: fetchClassic90sAnime, container: this.containers.classicAnime },
-            { name: 'popularAnime', fetch: fetchPopularAnime, container: this.containers.popularAnime },
-            { name: 'underratedAnime', fetch: fetchUnderratedAnime, container: this.containers.underratedAnime }
-        ];
-
-        // Load all sections concurrently for better performance
-        await Promise.all(sections.map(section => this.loadSection(section)));
+        await Promise.all([
+            this.loadSection('newAnime', fetchNewUpcomingAnime),
+            this.loadSection('classicAnime', fetchClassic90sAnime),
+            this.loadSection('popularAnime', fetchPopularAnime),
+            this.loadSection('underratedAnime', fetchUnderratedAnime),
+            this.loadSection('hotzAnime', fetchHotzAnime)
+        ]);
+        this.attachLoadMore();
+        this.renderFilterBar();
     }
 
-    async loadSection(section) {
+    async loadSection(key, fetchFn, append = false) {
+        const container = this.containers[key];
+        if (!append) container.innerHTML = '<div class="loading">Loading anime...</div>';
         try {
-            section.container.innerHTML = '<div class="loading">Loading amazing anime...</div>';
-            
-            const anime = await section.fetch();
-            section.container.innerHTML = '';
-            
-            if (anime && anime.length > 0) {
-                anime.forEach((item, index) => {
-                    this.createAnimeCard(item, index, section.container);
-                });
-            } else {
-                section.container.innerHTML = '<div class="error">No anime found</div>';
+            const page = this.pages[key];
+            const data = await fetchFn(page, this.pageSize);
+            const existingScroll = container.scrollTop;
+            if (!append) container.innerHTML = '';
+            if (data?.length) {
+                const filtered = [];
+                for (const item of data) {
+                    if (!this.globalIds.has(item.id)) {
+                        this.globalIds.add(item.id);
+                        filtered.push(item);
+                    }
+                }
+                if (!append) this.sectionCache[key] = [...(this.sectionCache[key]||[]), ...filtered];
+                filtered.forEach((item, idx) => this.createAnimeCard(item, idx + ((page-1)*this.pageSize), container));
+                container.scrollTop = existingScroll;
+            } else if (!append) {
+                container.innerHTML = '<div class="error">No anime found</div>';
             }
-        } catch (error) {
-            console.error(`Error loading ${section.name}:`, error);
-            section.container.innerHTML = `<div class="error">Failed to load ${section.name}</div>`;
+        } catch (e) {
+            console.error('Section load failed', key, e);
+            if (!append) container.innerHTML = '<div class="error">Failed to load</div>';
         }
+    }
+
+    attachLoadMore() {
+        const mappings = [
+            { key: 'newAnime', sectionId: 'new-anime-section' },
+            { key: 'classicAnime', sectionId: 'classic-anime-section' },
+            { key: 'popularAnime', sectionId: 'popular-anime-section' },
+            { key: 'underratedAnime', sectionId: 'underrated-anime-section' },
+            { key: 'hotzAnime', sectionId: 'hotz-anime-section' }
+        ];
+        mappings.forEach(m => {
+            const section = document.getElementById(m.sectionId);
+            if (!section) return;
+            let footer = section.querySelector('.section-footer');
+            if (!footer) {
+                footer = document.createElement('div');
+                footer.className = 'section-footer';
+                section.appendChild(footer);
+            }
+            const btn = document.createElement('button');
+            btn.className = 'button load-more-btn';
+            btn.textContent = 'Load More';
+            btn.addEventListener('click', async () => {
+                btn.disabled = true;
+                btn.textContent = 'Loading...';
+                this.pages[m.key] += 1;
+                await this.loadSection(m.key, this.getFetcher(m.key), true);
+                btn.disabled = false;
+                btn.textContent = 'Load More';
+            });
+            footer.appendChild(btn);
+        });
+    }
+
+    getFetcher(key) {
+        switch (key) {
+            case 'newAnime': return fetchNewUpcomingAnime;
+            case 'classicAnime': return fetchClassic90sAnime;
+            case 'popularAnime': return fetchPopularAnime;
+            case 'underratedAnime': return fetchUnderratedAnime;
+            case 'hotzAnime': return fetchHotzAnime;
+            default: return fetchNewUpcomingAnime;
+        }
+    }
+
+    renderFilterBar() {
+        // Create a global filter bar at top of main if not exist
+        if (document.getElementById('filter-bar')) return;
+        const main = document.querySelector('main');
+        const bar = document.createElement('div');
+        bar.id = 'filter-bar';
+        bar.className = 'filter-bar';
+        bar.innerHTML = `
+            <div class="filter-group">
+                <input type="text" id="searchInput" placeholder="Search title..." class="filter-input" />
+                <select id="genreSelect" class="filter-input">
+                    <option value="">All Genres</option>
+                    <option>Action</option>
+                    <option>Romance</option>
+                    <option>Comedy</option>
+                    <option>Drama</option>
+                    <option>Fantasy</option>
+                    <option>Sci-Fi</option>
+                    <option>Harem</option>
+                    <option>Ecchi</option>
+                    <option>Yuri</option>
+                </select>
+                <select id="statusSelect" class="filter-input">
+                    <option value="">Any Status</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Ongoing">Ongoing</option>
+                    <option value="Upcoming">Upcoming</option>
+                </select>
+                <select id="sortSelect" class="filter-input">
+                    <option value="score_desc">Top Score</option>
+                    <option value="score_asc">Low Score</option>
+                    <option value="episodes_desc">Episodes (High)</option>
+                    <option value="episodes_asc">Episodes (Low)</option>
+                    <option value="title_asc">Title A-Z</option>
+                    <option value="title_desc">Title Z-A</option>
+                </select>
+                <button id="applyFilters" class="button" style="min-width:140px;">Apply</button>
+                <button id="clearFilters" class="button-secondary" style="min-width:140px;">Reset</button>
+            </div>`;
+        main.prepend(bar);
+
+        document.getElementById('applyFilters').addEventListener('click', () => this.applyFilters());
+        document.getElementById('clearFilters').addEventListener('click', () => this.resetFilters());
+    }
+
+    applyFilters() {
+        const search = (document.getElementById('searchInput').value || '').toLowerCase();
+        const genre = document.getElementById('genreSelect').value;
+        const status = document.getElementById('statusSelect').value;
+        const sort = document.getElementById('sortSelect').value;
+
+        // Determine current visible section
+        const activeLink = document.querySelector('.nav-links a.active');
+        if (!activeLink) return;
+        const sectionId = activeLink.getAttribute('href').substring(1);
+        const sectionKeyMap = {
+            'new-anime': 'newAnime',
+            'classic': 'classicAnime',
+            'popular': 'popularAnime',
+            'underrated': 'underratedAnime',
+            'hotz': 'hotzAnime'
+        };
+        const key = sectionKeyMap[sectionId];
+        if (!key) return;
+
+        const cache = this.sectionCache[key] || [];
+        let filtered = cache.slice();
+        if (search) filtered = filtered.filter(a => a.title.toLowerCase().includes(search));
+        if (genre) filtered = filtered.filter(a => (a.genres || []).some(g => g.toLowerCase() === genre.toLowerCase()));
+        if (status) filtered = filtered.filter(a => (a.status || '').toLowerCase().includes(status.toLowerCase()));
+
+        const sorters = {
+            score_desc: (a,b)=> (b.score||0) - (a.score||0),
+            score_asc: (a,b)=> (a.score||0) - (b.score||0),
+            episodes_desc: (a,b)=>(parseInt(b.episodes)||0)-(parseInt(a.episodes)||0),
+            episodes_asc: (a,b)=>(parseInt(a.episodes)||0)-(parseInt(b.episodes)||0),
+            title_asc: (a,b)=> a.title.localeCompare(b.title),
+            title_desc: (a,b)=> b.title.localeCompare(a.title)
+        };
+        filtered.sort(sorters[sort] || sorters.score_desc);
+
+        // Re-render container
+        const container = this.containers[key];
+        container.innerHTML = '';
+        filtered.forEach((item, idx)=> this.createAnimeCard(item, idx, container));
+    }
+
+    resetFilters() {
+        ['searchInput','genreSelect','statusSelect','sortSelect'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = (id==='sortSelect' ? 'score_desc' : '');
+        });
+        this.applyFilters();
     }
 
     createAnimeCard(anime, index, container) {
@@ -75,13 +246,18 @@ class App {
                 <div class="anime-card__score">${anime.score}</div>
             </div>
             <div class="anime-card__content">
-                <h3 class="anime-card__title">${anime.title}</h3>
+                <h3 class="anime-card__title" style="font-weight:800;letter-spacing:.5px;">${anime.title}</h3>
                 <div class="anime-card__info">
                     <span class="anime-card__type">${anime.type}</span>
                     <span class="anime-card__episodes">${anime.episodes} EP</span>
                     <span class="anime-card__year">${anime.year}</span>
                 </div>
-                <p class="anime-card__summary">${anime.summary}</p>
+                <div class="anime-card__meta-line" style="display:flex;flex-wrap:wrap;gap:.6rem;margin:-.4rem 0 1rem;">
+                    <span class="meta-pill" style="background:rgba(255,123,35,.12);color:#e85600;padding:.35rem .65rem;border-radius:12px;font-size:.72rem;font-weight:700;letter-spacing:.5px;">Status: ${anime.status}</span>
+                    <span class="meta-pill" style="background:rgba(255,61,46,.12);color:#c92f1d;padding:.35rem .65rem;border-radius:12px;font-size:.72rem;font-weight:700;">Score: ${anime.score}</span>
+                    <span class="meta-pill" style="background:rgba(27,36,44,.12);color:#1b242c;padding:.35rem .65rem;border-radius:12px;font-size:.72rem;font-weight:700;">Episodes: ${anime.episodes}</span>
+                </div>
+                <p class="anime-card__summary" style="font-weight:600;color:#2c3e50;">${anime.summary}</p>
                 <div class="anime-card__actions">
                     <button class="button-primary view-details" data-anime-id="${anime.id}">
                         📖 Details
@@ -237,6 +413,7 @@ class App {
             'classic': document.getElementById('classic-anime-section'),
             'popular': document.getElementById('popular-anime-section'),
             'underrated': document.getElementById('underrated-anime-section'),
+            'hotz': document.getElementById('hotz-anime-section'),
             'watchlist': document.getElementById('watchlist-section')
         };
         
@@ -258,6 +435,11 @@ class App {
         const activeLink = document.querySelector(`[href="#${section}"]`);
         if (activeLink) {
             activeLink.classList.add('active');
+        }
+
+        // Re-apply filters automatically on section change
+        if (document.getElementById('filter-bar')) {
+            this.applyFilters();
         }
     }
 }

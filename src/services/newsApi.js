@@ -1,102 +1,133 @@
-// Fetch New Upcoming Anime
-export const fetchNewUpcomingAnime = async () => {
-    try {
-        const response = await fetch('https://api.jikan.moe/v4/seasons/upcoming?limit=12');
-        if (response.ok) {
-            const data = await response.json();
-            return data.data ? formatAnimeData(data.data) : getNewAnimeFallback();
+/**
+ * Generic JSON fetch with retry and rate-limit backoff for Jikan (simple 429 handling)
+ */
+async function requestJSON(url, { retries = 3, delay = 600 } = {}) {
+    for (let attempt = 0; attempt < retries; attempt++) {
+        try {
+            const res = await fetch(url, {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            if (res.status === 429) { // rate limited
+                const wait = delay * (attempt + 1);
+                await new Promise(r => setTimeout(r, wait));
+                continue;
+            }
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch (e) {
+            if (attempt === retries - 1) {
+                console.warn('requestJSON failed:', e.message, 'url:', url);
+                return null;
+            }
+            await new Promise(r => setTimeout(r, delay * (attempt + 1)));
         }
-    } catch (error) {
-        console.log('Using fallback for new anime');
-    }
-    return getNewAnimeFallback();
-};
-
-// Fetch Classic 90s Anime
-export const fetchClassic90sAnime = async () => {
-    try {
-        const response = await fetch('https://api.jikan.moe/v4/anime?start_date=1990-01-01&end_date=1999-12-31&order_by=score&sort=desc&limit=12');
-        if (response.ok) {
-            const data = await response.json();
-            return data.data ? formatAnimeData(data.data) : getClassicAnimeFallback();
-        }
-    } catch (error) {
-        console.log('Using fallback for classic anime');
-    }
-    return getClassicAnimeFallback();
-};
-
-// Fetch Popular Anime
-export const fetchPopularAnime = async () => {
-    try {
-        const response = await fetch('https://api.jikan.moe/v4/top/anime?limit=12');
-        if (response.ok) {
-            const data = await response.json();
-            return data.data ? formatAnimeData(data.data) : getPopularAnimeFallback();
-        }
-    } catch (error) {
-        console.log('Using fallback for popular anime');
-    }
-    return getPopularAnimeFallback();
-};
-
-// Fetch Underrated Anime
-export const fetchUnderratedAnime = async () => {
-    try {
-        const response = await fetch('https://api.jikan.moe/v4/anime?min_score=7&max_score=8.5&order_by=members&sort=asc&limit=12');
-        if (response.ok) {
-            const data = await response.json();
-            return data.data ? formatAnimeData(data.data) : getUnderratedAnimeFallback();
-        }
-    } catch (error) {
-        console.log('Using fallback for underrated anime');
-    }
-    return getUnderratedAnimeFallback();
-};
-
-// Get detailed anime information
-export const getAnimeDetails = async (id) => {
-    try {
-        const [animeResponse, videosResponse] = await Promise.all([
-            fetch(`https://api.jikan.moe/v4/anime/${id}`),
-            fetch(`https://api.jikan.moe/v4/anime/${id}/videos`)
-        ]);
-        
-        const animeData = animeResponse.ok ? await animeResponse.json() : null;
-        const videosData = videosResponse.ok ? await videosResponse.json() : null;
-        
-        if (animeData?.data) {
-            return {
-                ...formatAnimeData([animeData.data])[0],
-                fullSynopsis: animeData.data.synopsis,
-                trailer: videosData?.data?.promo?.[0]?.trailer?.youtube_id || null,
-                studios: animeData.data.studios?.map(s => s.name).join(', '),
-                genres: animeData.data.genres?.map(g => g.name).join(', '),
-                status: animeData.data.status,
-                source: animeData.data.source,
-                duration: animeData.data.duration
-            };
-        }
-    } catch (error) {
-        console.error('Error fetching anime details:', error);
     }
     return null;
-};
-
-// Format anime data helper function
-function formatAnimeData(animeList) {
-    return animeList.map(anime => ({
-        id: anime.mal_id,
-        title: anime.title || anime.title_english || 'Unknown Anime',
-        summary: anime.synopsis ? anime.synopsis.substring(0, 200) + '...' : 'No description available',
-        image: anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || 'https://via.placeholder.com/300x400',
-        score: anime.score || 'N/A',
-        episodes: anime.episodes || 'TBA',
-        year: anime.year || new Date().getFullYear(),
-        status: anime.status || 'Unknown',
-        type: anime.type || 'TV'
-    }));
 }
+
+function trimSummary(text, max = 220) {
+    if (!text) return 'No description available';
+    if (text.length <= max) return text;
+    return text.substring(0, max).trim() + '...';
+}
+
+function normalizeAnime(anime) {
+    return {
+        id: anime.mal_id,
+        title: anime.title_english || anime.title || 'Unknown Anime',
+        summary: trimSummary(anime.synopsis),
+        image: anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || 'https://via.placeholder.com/400x560/1e3a5f/FFFFFF?text=No+Image',
+        score: anime.score ?? 'N/A',
+        episodes: anime.episodes ?? 'TBA',
+        year: anime.year || (anime.aired?.prop?.from?.year) || '—',
+        status: anime.status || 'Unknown',
+        type: anime.type || 'TV',
+        genres: (anime.genres || []).map(g => g.name)
+    };
+}
+
+function mapList(list) { return list.map(normalizeAnime); }
+
+// Upcoming / New
+export async function fetchNewUpcomingAnime(page = 1, limit = 12) {
+    const url = `https://api.jikan.moe/v4/seasons/upcoming?page=${page}&limit=${limit}`;
+    const json = await requestJSON(url);
+    if (json?.data?.length) return mapList(json.data);
+    return getNewAnimeFallback();
+}
+
+// Classic 90s
+export async function fetchClassic90sAnime(page = 1, limit = 12) {
+    // Jikan pagination via page param; filter by start/end dates
+    const url = `https://api.jikan.moe/v4/anime?start_date=1990-01-01&end_date=1999-12-31&page=${page}&limit=${limit}&order_by=score&sort=desc`; 
+    const json = await requestJSON(url);
+    if (json?.data?.length) return mapList(json.data);
+    return getClassicAnimeFallback();
+}
+
+// Popular (Top)
+export async function fetchPopularAnime(page = 1, limit = 12) {
+    const url = `https://api.jikan.moe/v4/top/anime?page=${page}&limit=${limit}`;
+    const json = await requestJSON(url);
+    if (json?.data?.length) return mapList(json.data);
+    return getPopularAnimeFallback();
+}
+
+// Underrated – heuristic: moderate score, fewer members (order by members asc)
+export async function fetchUnderratedAnime(page = 1, limit = 12) {
+    const url = `https://api.jikan.moe/v4/anime?min_score=7&max_score=8.4&page=${page}&limit=${limit}&order_by=members&sort=asc`; 
+    const json = await requestJSON(url);
+    if (json?.data?.length) return mapList(json.data);
+    return getUnderratedAnimeFallback();
+}
+
+// HOTZ: romance (22), harem (35), ecchi (9), yuri (34)
+export async function fetchHotzAnime(page = 1, limit = 24) {
+    // We'll fetch each genre separately (limit quarter) then merge & dedupe
+    const genreIds = [22,35,9,34];
+    const per = Math.max(3, Math.ceil(limit / genreIds.length));
+    const results = [];
+    for (const gid of genreIds) {
+        const url = `https://api.jikan.moe/v4/anime?genres=${gid}&page=${page}&limit=${per}&order_by=score&sort=desc`;
+        const json = await requestJSON(url);
+        if (json?.data?.length) {
+            results.push(...json.data);
+        }
+    }
+    if (!results.length) return getHotzFallback();
+    // Dedupe by mal_id preserving order
+    const seen = new Set();
+    const merged = [];
+    for (const a of results) {
+        if (!seen.has(a.mal_id)) { seen.add(a.mal_id); merged.push(a); }
+    }
+    return mapList(merged).slice(0, limit);
+}
+
+export async function getAnimeDetails(id) {
+    const [meta, videos] = await Promise.all([
+        requestJSON(`https://api.jikan.moe/v4/anime/${id}`),
+        requestJSON(`https://api.jikan.moe/v4/anime/${id}/videos`)
+    ]);
+    if (meta?.data) {
+        const base = normalizeAnime(meta.data);
+        const trailer = meta.data.trailer?.youtube_id || videos?.data?.promo?.[0]?.trailer?.youtube_id || null;
+        return {
+            ...base,
+            fullSynopsis: meta.data.synopsis || base.summary,
+            studios: meta.data.studios?.map(s => s.name).join(', ') || '',
+            genres: meta.data.genres?.map(g => g.name).join(', ') || '',
+            source: meta.data.source || '',
+            duration: meta.data.duration || '',
+            trailer
+        };
+    }
+    return null;
+}
+
+// ---- FALLBACK DATA (unchanged below except formatting) ----
 
 // Fallback data functions
 function getNewAnimeFallback() {
@@ -251,67 +282,45 @@ function getUnderratedAnimeFallback() {
     ];
 }
         
-        // Fallback data if API fails
-        return [
-            {
-                id: 1,
-                title: "Attack on Titan: Final Season",
-                summary: "The final season of the epic anime series continues with intense battles and revelations about the truth behind the walls.",
-                image: "https://cdn.myanimelist.net/images/anime/1988/122803l.jpg",
-                url: "#",
-                date: new Date().toLocaleDateString(),
-                score: 9.0,
-                episodes: 28
-            },
-            {
-                id: 2,
-                title: "Demon Slayer: Kimetsu no Yaiba",
-                summary: "Follow Tanjiro's journey as he continues to fight demons and search for a cure for his sister Nezuko.",
-                image: "https://cdn.myanimelist.net/images/anime/1286/99889l.jpg",
-                url: "#",
-                date: new Date().toLocaleDateString(),
-                score: 8.7,
-                episodes: 44
-            },
-            {
-                id: 3,
-                title: "Jujutsu Kaisen",
-                summary: "Yuji Itadori joins a secret organization of Jujutsu Sorcerers to kill a powerful Curse named Ryomen Sukuna.",
-                image: "https://cdn.myanimelist.net/images/anime/1171/109222l.jpg",
-                url: "#",
-                date: new Date().toLocaleDateString(),
-                score: 8.5,
-                episodes: 24
-            },
-            {
-                id: 4,
-                title: "My Hero Academia",
-                summary: "In a world where people with superpowers are the norm, Izuku Midoriya dreams of becoming a hero despite being born without powers.",
-                image: "https://cdn.myanimelist.net/images/anime/10/78745l.jpg",
-                url: "#",
-                date: new Date().toLocaleDateString(),
-                score: 7.9,
-                episodes: 138
-            },
-            {
-                id: 5,
-                title: "One Piece",
-                summary: "Follow Monkey D. Luffy and his crew as they continue their epic adventure to find the legendary treasure known as One Piece.",
-                image: "https://cdn.myanimelist.net/images/anime/6/73245l.jpg",
-                url: "#",
-                date: new Date().toLocaleDateString(),
-                score: 9.0,
-                episodes: 1000
-            },
-            {
-                id: 6,
-                title: "Spirited Away",
-                summary: "A magical tale of a young girl who enters a world ruled by gods, witches, and spirits where humans are transformed into beasts.",
-                image: "https://cdn.myanimelist.net/images/anime/6/179l.jpg",
-                url: "#",
-                date: new Date().toLocaleDateString(),
-                score: 9.3,
-                episodes: 1
-            }
-        ];
+// (Legacy leftover removed)
+
+function getHotzFallback() {
+    return [
+        {
+            id: 501,
+            title: 'High School DxD',
+            summary: 'An ecchi supernatural harem action series following Issei and devil house conflicts.',
+            image: 'https://cdn.myanimelist.net/images/anime/8/50859l.jpg',
+            score: 7.2,
+            episodes: 12,
+            year: 2012,
+            status: 'Completed',
+            type: 'TV',
+            genres: ['Ecchi','Harem','Romance','Fantasy']
+        },
+        {
+            id: 502,
+            title: 'Toradora!',
+            summary: 'A fiery tsundere and a gentle boy form an unlikely alliance to pursue their crushes, leading to heartfelt romance.',
+            image: 'https://cdn.myanimelist.net/images/anime/13/22128l.jpg',
+            score: 8.1,
+            episodes: 25,
+            year: 2008,
+            status: 'Completed',
+            type: 'TV',
+            genres: ['Romance','Comedy','School']
+        },
+        {
+            id: 503,
+            title: 'Bloom Into You',
+            summary: 'A delicate yuri romance exploring identity, affection, and emotional growth between two students.',
+            image: 'https://cdn.myanimelist.net/images/anime/1993/93826l.jpg',
+            score: 7.9,
+            episodes: 13,
+            year: 2018,
+            status: 'Completed',
+            type: 'TV',
+            genres: ['Yuri','Romance','Drama']
+        }
+    ];
 }
