@@ -52,7 +52,7 @@ class App {
         this.loadWatchlist();
         
         // Show first section by default
-        this.showSection('new-anime');
+        this.showSection('new');
     }
 
     async loadAllSections() {
@@ -338,11 +338,15 @@ class App {
     }
 
     setupNavigation() {
-        document.querySelectorAll('.nav-links a').forEach(link => {
-            link.addEventListener('click', (e) => {
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
                 e.preventDefault();
-                const section = e.target.getAttribute('href').substring(1);
+                const section = e.target.getAttribute('data-section');
                 this.showSection(section);
+                
+                // Update active state
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
             });
         });
     }
@@ -409,7 +413,7 @@ class App {
 
     showSection(section) {
         const sections = {
-            'new-anime': document.getElementById('new-anime-section'),
+            'new': document.getElementById('new-anime-section'),
             'classic': document.getElementById('classic-anime-section'),
             'popular': document.getElementById('popular-anime-section'),
             'underrated': document.getElementById('underrated-anime-section'),

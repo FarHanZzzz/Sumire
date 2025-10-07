@@ -1,22 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Anime News</title>
-    <link rel="stylesheet" href="assets/styles/main.css">
-    <link rel="stylesheet" href="assets/styles/components.css">
+    <!-- Load CSS from /src (absolute paths so they work while this file is in /public) -->
+    <link rel="stylesheet" href="/src/assets/styles/main.css" />
+    <link rel="stylesheet" href="/src/assets/styles/components.css" />
 </head>
 <body>
-    <header>
-        <h1>Anime News</h1>
-    </header>
+    <nav class="navbar">
+        <h1 class="brand">Anime News</h1>
+        <div class="nav-links">
+            <button class="nav-btn active" data-section="new">Upcoming</button>
+            <button class="nav-btn" data-section="classic">Classics</button>
+            <button class="nav-btn" data-section="popular">Popular</button>
+            <button class="nav-btn" data-section="underrated">Underrated</button>
+            <button class="nav-btn" data-section="hotz">HOTZ Mix</button>
+            <button class="nav-btn" data-section="watchlist">Watchlist</button>
+        </div>
+    </nav>
+
     <main id="app">
-        <!-- The application will render components here -->
+        <!-- Sections expected by app.js -->
+        <section id="new-anime-section" class="section-container" style="display:block;">
+            <div class="section-header">
+                <h2>Upcoming Releases</h2>
+                <p>Fresh arrivals & soon‑to‑air shows — stay ahead of the season</p>
+            </div>
+            <div id="new-anime-container" class="anime-grid"></div>
+            <div class="load-more-container"><button id="load-more-new" class="load-more-btn">Load More</button></div>
+        </section>
+
+        <section id="classic-anime-section" class="section-container" style="display:none;">
+            <div class="section-header">
+                <h2>Classic 90s Anime</h2>
+                <p>Timeless masterpieces that defined the era</p>
+            </div>
+            <div id="classic-anime-container" class="anime-grid"></div>
+            <div class="load-more-container"><button id="load-more-classic" class="load-more-btn">Load More</button></div>
+        </section>
+
+        <section id="popular-anime-section" class="section-container" style="display:none;">
+            <div class="section-header">
+                <h2>Popular Anime</h2>
+                <p>Fan favorites & trending hits</p>
+            </div>
+            <div id="popular-anime-container" class="anime-grid"></div>
+            <div class="load-more-container"><button id="load-more-popular" class="load-more-btn">Load More</button></div>
+        </section>
+
+        <section id="underrated-anime-section" class="section-container" style="display:none;">
+            <div class="section-header">
+                <h2>Underrated Gems</h2>
+                <p>Discover lesser-known brilliance</p>
+            </div>
+            <div id="underrated-anime-container" class="anime-grid"></div>
+            <div class="load-more-container"><button id="load-more-underrated" class="load-more-btn">Load More</button></div>
+        </section>
+
+        <section id="hotz-anime-section" class="section-container" style="display:none;">
+            <div class="section-header">
+                <h2>HOTZ Mix</h2>
+                <p>Romance • Harem • Ecchi • Yuri blend</p>
+            </div>
+            <div id="hotz-anime-container" class="anime-grid"></div>
+            <div class="load-more-container"><button id="load-more-hotz" class="load-more-btn">Load More</button></div>
+        </section>
+
+        <section id="watchlist-section" class="section-container" style="display:none;">
+            <div class="section-header">
+                <h2>My Watchlist</h2>
+                <p>Your saved anime list</p>
+            </div>
+            <div id="watchlist-container" class="anime-grid"></div>
+        </section>
     </main>
+
+    <!-- Modal expected by app.js -->
+    <div id="anime-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
     <footer>
         <p>&copy; 2023 Anime News. All rights reserved.</p>
     </footer>
-    <script src="app.js"></script>
+
+    <script type="module" src="/src/app.js"></script>
 </body>
 </html>
