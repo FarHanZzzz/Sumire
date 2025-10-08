@@ -46,6 +46,16 @@ html {
     scroll-behavior: smooth;
 }
 
+/* GPU acceleration for better performance */
+* {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-perspective: 1000px;
+    perspective: 1000px;
+    -webkit-transform: translate3d(0,0,0);
+    transform: translate3d(0,0,0);
+}
+
 /* Touch-friendly interactions */
 button, .nav-btn, .button-primary, .button-secondary {
     /* Remove iOS button styling */
@@ -54,6 +64,21 @@ button, .nav-btn, .button-primary, .button-secondary {
     appearance: none;
     /* Better touch feedback */
     touch-action: manipulation;
+    /* Smooth interactions */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Smooth section transitions */
+.section-container {
+    transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.section-container[style*="display: none"] {
+    opacity: 0;
+    transform: translateY(20px);
 }
 
 body {
@@ -67,6 +92,8 @@ body {
     /* Better mobile performance */
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
+    /* Smooth transitions */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Search Bar */
@@ -99,16 +126,17 @@ body {
     font-size: 1.1rem;
     font-weight: 500;
     outline: none;
-    transition: all .3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     width: 100%;
     box-shadow: 0 4px 20px -8px rgba(0,0,0,0.4);
+    will-change: transform, border-color, box-shadow;
 }
 
 .search-input:focus {
     border-color: var(--brand-orange);
     background: rgba(255,255,255,0.2);
-    box-shadow: 0 0 0 3px rgba(255,123,35,0.3), 0 6px 24px -8px rgba(0,0,0,0.5);
-    transform: scale(1.02);
+    box-shadow: 0 0 0 4px rgba(255,123,35,0.3), 0 8px 30px -8px rgba(0,0,0,0.6);
+    transform: scale(1.03) translateY(-2px);
 }
 
 .search-input:hover {
