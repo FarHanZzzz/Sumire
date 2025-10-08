@@ -1,4 +1,4 @@
-# 🌸 Sumire - Anime Discovery Platform
+#  Sumire - Anime Discovery Platform
 
 **Live Site:** [https://farhanzzzz.github.io/Sumire/](https://farhanzzzz.github.io/Sumire/)
 
