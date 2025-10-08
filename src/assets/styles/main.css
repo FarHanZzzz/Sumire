@@ -38,6 +38,24 @@
     box-sizing: border-box;
 }
 
+/* Mobile-first optimizations */
+html {
+    /* Prevent zoom on iOS */
+    -webkit-text-size-adjust: 100%;
+    /* Smooth scrolling */
+    scroll-behavior: smooth;
+}
+
+/* Touch-friendly interactions */
+button, .nav-btn, .button-primary, .button-secondary {
+    /* Remove iOS button styling */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    /* Better touch feedback */
+    touch-action: manipulation;
+}
+
 body {
     font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     background: radial-gradient(circle at 20% 15%, #ffb37a 0%, #ff9850 18%, #1b242c 65%, #12191f 100%);
@@ -46,6 +64,9 @@ body {
     line-height: 1.7;
     font-size: 16px;
     overflow-x: hidden;
+    /* Better mobile performance */
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* Search Bar */
@@ -146,7 +167,36 @@ body {
 }
 
 @media (max-width: 840px) {
-    #search-bar.search-bar { padding: 1rem; }
+    #search-bar.search-bar { 
+        padding: 1rem; 
+    }
+    
+    .search-input {
+        font-size: 1rem;
+        padding: 0.9rem 2.5rem 0.9rem 1.2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    #search-bar.search-bar {
+        padding: 0.8rem 0.5rem;
+    }
+    
+    .search-group {
+        max-width: 100%;
+    }
+    
+    .search-input {
+        font-size: 0.9rem;
+        padding: 0.8rem 2.2rem 0.8rem 1rem;
+    }
+    
+    .search-clear {
+        width: 28px;
+        height: 28px;
+        right: 0.8rem;
+        font-size: 0.8rem;
+    }
 }
 
 /* No results message */
@@ -585,16 +635,32 @@ a:hover {
     }
     
     .nav-links {
-        gap: 0.3rem;
+        gap: 0.2rem;
+        flex-wrap: wrap;
+        justify-content: center;
     }
     
     .nav-btn {
-        padding: 0.5rem 0.8rem;
-        font-size: 0.8rem;
-        min-width: 70px;
+        padding: 0.6rem 0.7rem;
+        font-size: 0.75rem;
+        min-width: 65px;
+        /* Better touch targets */
+        min-height: 36px;
+        border-radius: 18px;
     }
     
     .navbar h1.brand {
         font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Ensure touch-friendly spacing */
+    body {
+        font-size: 14px;
+    }
+    
+    /* Improve readability on small screens */
+    .section-container {
+        padding: 1rem 0;
     }
 }
