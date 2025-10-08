@@ -39,94 +39,90 @@
 }
 
 body {
-    font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     background: radial-gradient(circle at 20% 15%, #ffb37a 0%, #ff9850 18%, #1b242c 65%, #12191f 100%);
     background-attachment: fixed;
     color: var(--text-dark);
-    line-height: 1.6;
+    line-height: 1.7;
+    font-size: 16px;
     overflow-x: hidden;
 }
 
-/* Filter Bar */
-#filter-bar.filter-bar {
+/* Search Bar */
+#search-bar.search-bar {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    padding: 1rem 2rem 1.2rem;
-    background: rgba(27,36,44,0.55);
-    backdrop-filter: blur(14px) saturate(140%);
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    justify-content: center;
+    padding: 1.5rem 2rem;
+    background: rgba(27,36,44,0.6);
+    backdrop-filter: blur(16px) saturate(150%);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
     position: sticky;
     top: 72px; /* under navbar */
     z-index: 950;
-    box-shadow: 0 8px 28px -10px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.04);
+    box-shadow: 0 8px 32px -12px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.05);
 }
 
-.filter-group {
+.search-group {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    width: 100%;
     align-items: center;
+    position: relative;
+    max-width: 600px;
+    width: 100%;
 }
 
-.filter-input {
-    background: rgba(255,255,255,0.08);
-    color: #fff;
-    border: 1px solid rgba(255,255,255,0.15);
-    padding: 0.65rem 0.9rem;
-    border-radius: 10px;
-    font-size: 0.9rem;
-    outline: none;
-    transition: border .25s ease, background .25s ease, box-shadow .25s ease;
-    min-width: 160px;
-}
-
-.filter-input:focus {
-    border-color: var(--brand-orange);
+.search-input {
     background: rgba(255,255,255,0.15);
-    box-shadow: 0 0 0 2px rgba(255,115,30,0.35);
+    color: #fff;
+    border: 2px solid rgba(255,255,255,0.3);
+    padding: 1rem 3rem 1rem 1.5rem;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    outline: none;
+    transition: all .3s ease;
+    width: 100%;
+    box-shadow: 0 4px 20px -8px rgba(0,0,0,0.4);
 }
 
-/* Force consistent dark theming for select/input across browsers (prevent white flash) */
-.filter-input,
-.filter-input:hover,
-.filter-input:focus {
-    background-color: rgba(20,26,32,0.65);
-    backdrop-filter: blur(6px) saturate(140%);
-    -webkit-backdrop-filter: blur(6px) saturate(140%);
-    color: #f5f7fa;
+.search-input:focus {
+    border-color: var(--brand-orange);
+    background: rgba(255,255,255,0.2);
+    box-shadow: 0 0 0 3px rgba(255,123,35,0.3), 0 6px 24px -8px rgba(0,0,0,0.5);
+    transform: scale(1.02);
 }
 
-.filter-input:hover {
-    border-color: rgba(255,140,60,0.65);
+.search-input:hover {
+    border-color: rgba(255,140,60,0.5);
+    background: rgba(255,255,255,0.18);
 }
 
-.filter-input::placeholder {
-    color: rgba(255,255,255,0.55);
+.search-input::placeholder {
+    color: rgba(255,255,255,0.6);
+    font-weight: 500;
 }
 
-/* Select dropdown options */
-select.filter-input option {
-    background: #1b242c;
-    color: #f5f7fa;
+.search-clear {
+    position: absolute;
+    right: 1rem;
+    background: rgba(255,255,255,0.2);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    color: rgba(255,255,255,0.8);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* Remove default white background on Edge/IE focus */
-select.filter-input:focus::-ms-value { background: transparent; color: #fff; }
-
-/* Autofill handling (Chrome) */
-input.filter-input:-webkit-autofill,
-input.filter-input:-webkit-autofill:hover,
-input.filter-input:-webkit-autofill:focus {
-    -webkit-text-fill-color: #fff;
-    transition: background-color 9999s ease-in-out 0s;
-    caret-color: #fff;
-}
-
-#searchInput {
-    flex: 1 1 260px;
-    min-width: 220px;
+.search-clear:hover {
+    background: rgba(255,107,71,0.8);
+    color: white;
+    transform: scale(1.1);
 }
 
 .button-secondary {
@@ -151,12 +147,32 @@ input.filter-input:-webkit-autofill:focus {
 }
 
 @media (max-width: 840px) {
-    #filter-bar.filter-bar { top: 120px; }
+    #search-bar.search-bar { top: 120px; }
 }
 
-h1, h2, h3 {
-    color: #2a9df4; /* Bluish tone for headings */
+/* No results message */
+.no-results {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-dark);
+    font-size: 1.2rem;
+    font-weight: 600;
+    background: var(--gradient-card);
+    border-radius: 20px;
+    margin: 2rem;
+    box-shadow: var(--card-shadow);
+    border: 1px solid rgba(74, 144, 226, 0.1);
 }
+
+.no-results::before {
+    content: '🔍';
+    display: block;
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+/* Headings inherit gradient / contextual styling; remove global override */
+h1, h2, h3 { font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif; font-weight: 700; }
 
 a {
     color: #2a9df4; /* Bluish tone for links */
@@ -216,8 +232,8 @@ a:hover {
  }
 
 .navbar h1.brand {
-    font-size: 2.4rem;
-    font-weight: 800;
+    font-size: 3.2rem;
+    font-weight: 900;
     letter-spacing: 1px;
     display: flex;
     align-items: center;
@@ -227,6 +243,7 @@ a:hover {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     filter: drop-shadow(0 6px 18px rgba(255,110,40,0.35));
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
     position: relative;
 }
 
@@ -259,16 +276,17 @@ a:hover {
 }
 
  .nav-links a {
-    color: rgba(255, 255, 255, 0.82);
+    color: rgba(255, 255, 255, 0.95);
     text-decoration: none;
-    font-weight: 600;
-    font-size: 1.02rem;
-    padding: 0.75rem 1.35rem .7rem;
+    font-weight: 700;
+    font-size: 1.15rem;
+    padding: 0.85rem 1.45rem .8rem;
     border-radius: 14px;
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
-    letter-spacing: .3px;
+    letter-spacing: .4px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
  }
 
 .nav-links a::before {
@@ -338,6 +356,8 @@ a:hover {
     0% { background-position: -200px 0; }
     100% { background-position: calc(200px + 100%) 0; }
 }
+
+/* (Alias) Some skeletons reference shimmer; defined also in components */
 
 @keyframes pulse {
     0%, 100% { opacity: 1; }

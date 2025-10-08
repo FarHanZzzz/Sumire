@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sumire</title>
+    <!-- Meta / SEO -->
+    <meta name="description" content="Sumire – explore upcoming, classic, popular and hidden gem anime with trailers and your personal watchlist." />
+    <meta property="og:title" content="Sumire – Anime Explorer" />
+    <meta property="og:description" content="Track, discover and curate anime across eras and genres." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="public/preview.png" />
+    <meta name="theme-color" content="#ff7b23" />
+    <link rel="icon" type="image/png" href="public/favicon.png" />
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+    <!-- Styles -->
+    <link rel="stylesheet" href="src/assets/styles/main.css" />
+    <link rel="stylesheet" href="src/assets/styles/components.css" />
+</head>
+<body>
+    <nav class="navbar" role="navigation" aria-label="Primary">
+        <h1 class="brand">Sumire</h1>
+        <div class="nav-links">
+            <button class="nav-btn active" data-section="new">Upcoming</button>
+            <button class="nav-btn" data-section="classic">Classics</button>
+            <button class="nav-btn" data-section="popular">Popular</button>
+            <button class="nav-btn" data-section="underrated">Underrated</button>
+            <button class="nav-btn" data-section="hotz">HOTZ Mix</button>
+            <button class="nav-btn" data-section="watchlist">Watchlist</button>
+        </div>
+    </nav>
+
+    <main id="app" role="main">
+        <!-- Sections expected by app.js -->
+        <section id="new-anime-section" class="section-container" style="display:block;">
+            <header class="section-header">
+                <div class="header-decoration"></div>
+                <h1 class="section-title">🌟 Upcoming Releases</h1>
+                <p class="section-subtitle">Fresh arrivals & soon‑to‑air shows — stay ahead of the season</p>
+                <div class="header-line"></div>
+            </header>
+            <div id="new-anime-container" class="anime-grid"></div>
+        </section>
+
+        <section id="classic-anime-section" class="section-container" style="display:none;">
+            <header class="section-header">
+                <div class="header-decoration"></div>
+                <h1 class="section-title">🎭 Classic 90s Collection</h1>
+                <p class="section-subtitle">Timeless masterpieces that defined the golden era of anime</p>
+                <div class="header-line"></div>
+            </header>
+            <div id="classic-anime-container" class="anime-grid"></div>
+        </section>
+
+        <section id="popular-anime-section" class="section-container" style="display:none;">
+            <header class="section-header">
+                <div class="header-decoration"></div>
+                <h1 class="section-title">🔥 Popular Anime</h1>
+                <p class="section-subtitle">Fan favorites & trending hits that captivated millions</p>
+                <div class="header-line"></div>
+            </header>
+            <div id="popular-anime-container" class="anime-grid"></div>
+        </section>
+
+        <section id="underrated-anime-section" class="section-container" style="display:none;">
+            <header class="section-header">
+                <div class="header-decoration"></div>
+                <h1 class="section-title">💎 Hidden Gems</h1>
+                <p class="section-subtitle">Discover brilliant anime that deserve more recognition</p>
+                <div class="header-line"></div>
+            </header>
+            <div id="underrated-anime-container" class="anime-grid"></div>
+        </section>
+
+        <section id="hotz-anime-section" class="section-container" style="display:none;">
+            <header class="section-header">
+                <div class="header-decoration"></div>
+                <h1 class="section-title">💘 Romance Collection</h1>
+                <p class="section-subtitle">Romance • Harem • Ecchi • Yuri — love in all its forms</p>
+                <div class="header-line"></div>
+            </header>
+            <div id="hotz-anime-container" class="anime-grid"></div>
+        </section>
+
+        <section id="watchlist-section" class="section-container" style="display:none;">
+            <header class="section-header">
+                <div class="header-decoration"></div>
+                <h1 class="section-title">📚 My Watchlist</h1>
+                <p class="section-subtitle">Your curated collection of anime to watch</p>
+                <div class="header-line"></div>
+            </header>
+            <div id="watchlist-container" class="anime-grid"></div>
+        </section>
+    </main>
+
+    <!-- Modal expected by app.js -->
+    <div id="anime-modal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-content">
+            <button class="close-modal" aria-label="Close dialog" type="button">&times;</button>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <footer role="contentinfo">
+        <p>&copy; 2025 Sumire. All rights reserved.</p>
+    </footer>
+
+    <script type="module" src="src/app.js"></script>
+</body>
+</html>

@@ -20,6 +20,9 @@ class App {
         };
         this.modal = document.getElementById('anime-modal');
         this.watchlistContainer = document.getElementById('watchlist-container'); // fix reference used later
+        this.toastContainer = null; // lazy init
+        this.lastFocusedElement = null; // restore focus after modal
+        this.modalKeydownHandler = null; // focus trap handler ref
 
         // pagination state per section
         this.pages = {
@@ -64,12 +67,15 @@ class App {
             this.loadSection('hotzAnime', fetchHotzAnime)
         ]);
         this.attachLoadMore();
-        this.renderFilterBar();
+        this.renderSearchBar();
     }
 
     async loadSection(key, fetchFn, append = false) {
         const container = this.containers[key];
-        if (!append) container.innerHTML = '<div class="loading">Loading anime...</div>';
+        if (!append) {
+            container.innerHTML = '';
+            this.renderSkeletons(container, 6);
+        }
         try {
             const page = this.pages[key];
             const data = await fetchFn(page, this.pageSize);
@@ -92,6 +98,7 @@ class App {
         } catch (e) {
             console.error('Section load failed', key, e);
             if (!append) container.innerHTML = '<div class="error">Failed to load</div>';
+            this.showToast('Failed to load section', 'error');
         }
     }
 
@@ -138,99 +145,70 @@ class App {
         }
     }
 
-    renderFilterBar() {
-        // Create a global filter bar at top of main if not exist
-        if (document.getElementById('filter-bar')) return;
+    renderSearchBar() {
+        // Create a simple search bar at top of main if not exist
+        if (document.getElementById('search-bar')) return;
         const main = document.querySelector('main');
         const bar = document.createElement('div');
-        bar.id = 'filter-bar';
-        bar.className = 'filter-bar';
+        bar.id = 'search-bar';
+        bar.className = 'search-bar';
         bar.innerHTML = `
-            <div class="filter-group">
-                <input type="text" id="searchInput" placeholder="Search title..." class="filter-input" />
-                <select id="genreSelect" class="filter-input">
-                    <option value="">All Genres</option>
-                    <option>Action</option>
-                    <option>Romance</option>
-                    <option>Comedy</option>
-                    <option>Drama</option>
-                    <option>Fantasy</option>
-                    <option>Sci-Fi</option>
-                    <option>Harem</option>
-                    <option>Ecchi</option>
-                    <option>Yuri</option>
-                </select>
-                <select id="statusSelect" class="filter-input">
-                    <option value="">Any Status</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Ongoing">Ongoing</option>
-                    <option value="Upcoming">Upcoming</option>
-                </select>
-                <select id="sortSelect" class="filter-input">
-                    <option value="score_desc">Top Score</option>
-                    <option value="score_asc">Low Score</option>
-                    <option value="episodes_desc">Episodes (High)</option>
-                    <option value="episodes_asc">Episodes (Low)</option>
-                    <option value="title_asc">Title A-Z</option>
-                    <option value="title_desc">Title Z-A</option>
-                </select>
-                <button id="applyFilters" class="button" style="min-width:140px;">Apply</button>
-                <button id="clearFilters" class="button-secondary" style="min-width:140px;">Reset</button>
+            <div class="search-group">
+                <input type="text" id="searchInput" placeholder="Search anime titles..." class="search-input" />
+                <button id="clearSearch" class="search-clear" aria-label="Clear search">✕</button>
             </div>`;
         main.prepend(bar);
 
-        document.getElementById('applyFilters').addEventListener('click', () => this.applyFilters());
-        document.getElementById('clearFilters').addEventListener('click', () => this.resetFilters());
+        const searchInput = document.getElementById('searchInput');
+        const clearBtn = document.getElementById('clearSearch');
+        
+        searchInput.addEventListener('input', () => this.applySearch());
+        clearBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            this.applySearch();
+        });
+
+        // Load persisted search
+        const saved = this.getSavedSearch();
+        if (saved && saved.query) {
+            searchInput.value = saved.query;
+            this.applySearch();
+        }
     }
 
-    applyFilters() {
-        const search = (document.getElementById('searchInput').value || '').toLowerCase();
-        const genre = document.getElementById('genreSelect').value;
-        const status = document.getElementById('statusSelect').value;
-        const sort = document.getElementById('sortSelect').value;
+    applySearch() {
+        const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
 
         // Determine current visible section
-        const activeLink = document.querySelector('.nav-links a.active');
-        if (!activeLink) return;
-        const sectionId = activeLink.getAttribute('href').substring(1);
+        const activeBtn = document.querySelector('.nav-btn.active');
+        if (!activeBtn) return;
         const sectionKeyMap = {
-            'new-anime': 'newAnime',
-            'classic': 'classicAnime',
-            'popular': 'popularAnime',
-            'underrated': 'underratedAnime',
-            'hotz': 'hotzAnime'
+            new: 'newAnime',
+            classic: 'classicAnime',
+            popular: 'popularAnime',
+            underrated: 'underratedAnime',
+            hotz: 'hotzAnime'
         };
-        const key = sectionKeyMap[sectionId];
+        const key = sectionKeyMap[activeBtn.dataset.section];
         if (!key) return;
 
         const cache = this.sectionCache[key] || [];
         let filtered = cache.slice();
-        if (search) filtered = filtered.filter(a => a.title.toLowerCase().includes(search));
-        if (genre) filtered = filtered.filter(a => (a.genres || []).some(g => g.toLowerCase() === genre.toLowerCase()));
-        if (status) filtered = filtered.filter(a => (a.status || '').toLowerCase().includes(status.toLowerCase()));
-
-        const sorters = {
-            score_desc: (a,b)=> (b.score||0) - (a.score||0),
-            score_asc: (a,b)=> (a.score||0) - (b.score||0),
-            episodes_desc: (a,b)=>(parseInt(b.episodes)||0)-(parseInt(a.episodes)||0),
-            episodes_asc: (a,b)=>(parseInt(a.episodes)||0)-(parseInt(b.episodes)||0),
-            title_asc: (a,b)=> a.title.localeCompare(b.title),
-            title_desc: (a,b)=> b.title.localeCompare(a.title)
-        };
-        filtered.sort(sorters[sort] || sorters.score_desc);
+        if (search) {
+            filtered = filtered.filter(a => a.title.toLowerCase().includes(search));
+        }
 
         // Re-render container
         const container = this.containers[key];
         container.innerHTML = '';
-        filtered.forEach((item, idx)=> this.createAnimeCard(item, idx, container));
-    }
+        if (filtered.length === 0 && search) {
+            container.innerHTML = '<div class="no-results">No anime found matching your search</div>';
+        } else {
+            filtered.forEach((item, idx) => this.createAnimeCard(item, idx, container));
+        }
 
-    resetFilters() {
-        ['searchInput','genreSelect','statusSelect','sortSelect'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.value = (id==='sortSelect' ? 'score_desc' : '');
-        });
-        this.applyFilters();
+        // Persist search
+        this.saveSearch({ query: search, section: activeBtn.dataset.section });
     }
 
     createAnimeCard(anime, index, container) {
@@ -239,25 +217,25 @@ class App {
         card.style.animationDelay = `${index * 0.1}s`;
         card.innerHTML = `
             <div class="anime-card__image-container">
-                <img src="${anime.image}" alt="${anime.title}" class="anime-card__image">
+                <img loading="lazy" src="${anime.image}" alt="${anime.title}" class="anime-card__image">
                 <div class="anime-card__overlay">
-                    <button class="play-button" data-anime-id="${anime.id}">▶️</button>
+                    <button class="play-button" aria-label="View details for ${anime.title}" data-anime-id="${anime.id}">▶️</button>
                 </div>
                 <div class="anime-card__score">${anime.score}</div>
             </div>
             <div class="anime-card__content">
-                <h3 class="anime-card__title" style="font-weight:800;letter-spacing:.5px;">${anime.title}</h3>
+                <h3 class="anime-card__title">${anime.title}</h3>
                 <div class="anime-card__info">
                     <span class="anime-card__type">${anime.type}</span>
                     <span class="anime-card__episodes">${anime.episodes} EP</span>
                     <span class="anime-card__year">${anime.year}</span>
                 </div>
-                <div class="anime-card__meta-line" style="display:flex;flex-wrap:wrap;gap:.6rem;margin:-.4rem 0 1rem;">
-                    <span class="meta-pill" style="background:rgba(255,123,35,.12);color:#e85600;padding:.35rem .65rem;border-radius:12px;font-size:.72rem;font-weight:700;letter-spacing:.5px;">Status: ${anime.status}</span>
-                    <span class="meta-pill" style="background:rgba(255,61,46,.12);color:#c92f1d;padding:.35rem .65rem;border-radius:12px;font-size:.72rem;font-weight:700;">Score: ${anime.score}</span>
-                    <span class="meta-pill" style="background:rgba(27,36,44,.12);color:#1b242c;padding:.35rem .65rem;border-radius:12px;font-size:.72rem;font-weight:700;">Episodes: ${anime.episodes}</span>
+                <div class="anime-card__meta-line meta-line">
+                    <span class="meta-pill meta-pill--status">Status: ${anime.status}</span>
+                    <span class="meta-pill meta-pill--score">Score: ${anime.score}</span>
+                    <span class="meta-pill meta-pill--episodes">Episodes: ${anime.episodes}</span>
                 </div>
-                <p class="anime-card__summary" style="font-weight:600;color:#2c3e50;">${anime.summary}</p>
+                <p class="anime-card__summary">${anime.summary}</p>
                 <div class="anime-card__actions">
                     <button class="button-primary view-details" data-anime-id="${anime.id}">
                         📖 Details
@@ -291,10 +269,10 @@ class App {
 
     addToWatchlist(anime) {
         if (addToWatchlist(anime)) {
-            alert(`${anime.title} added to watchlist!`);
+            this.showToast(`${anime.title} added to watchlist ✓`, 'success');
             this.loadWatchlist();
         } else {
-            alert(`${anime.title} is already in your watchlist!`);
+            this.showToast(`${anime.title} already in watchlist`, 'info');
         }
     }
 
@@ -317,7 +295,7 @@ class App {
         item.className = 'watchlist-item';
         item.style.animationDelay = `${index * 0.1}s`;
         item.innerHTML = `
-            <img src="${anime.image || 'https://via.placeholder.com/90x135'}" alt="${anime.title}" class="watchlist-item__image">
+            <img loading="lazy" src="${anime.image || 'https://via.placeholder.com/90x135'}" alt="${anime.title}" class="watchlist-item__image">
             <div class="watchlist-item__info">
                 <h4>${anime.title}</h4>
                 <p style="color: var(--text-light); margin-top: 0.5rem; font-size: 0.9rem;">Added to watchlist</p>
@@ -353,19 +331,37 @@ class App {
 
     setupModal() {
         const closeBtn = this.modal.querySelector('.close-modal');
-        closeBtn.addEventListener('click', () => {
-            this.modal.style.display = 'none';
-        });
+        closeBtn.addEventListener('click', () => this.closeModal());
         
         this.modal.addEventListener('click', (e) => {
             if (e.target === this.modal) {
-                this.modal.style.display = 'none';
+                this.closeModal();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.modal.style.display === 'flex') {
+                this.closeModal();
             }
         });
     }
 
+    closeModal() {
+        this.modal.style.display = 'none';
+        if (this.modalKeydownHandler) {
+            document.removeEventListener('keydown', this.modalKeydownHandler, true);
+            this.modalKeydownHandler = null;
+        }
+        if (this.lastFocusedElement) {
+            this.lastFocusedElement.focus();
+            this.lastFocusedElement = null;
+        }
+    }
+
     async showAnimeDetails(animeId) {
+        this.lastFocusedElement = document.activeElement;
         this.modal.style.display = 'flex';
+        // Accessibility: clear previous, set focus after content loads
         const modalBody = document.getElementById('modal-body');
         modalBody.innerHTML = '<div class="loading">Loading anime details...</div>';
         
@@ -376,7 +372,7 @@ class App {
                     <div class="anime-details__header">
                         <img src="${details.image}" alt="${details.title}" class="anime-details__image">
                         <div class="anime-details__info">
-                            <h2>${details.title}</h2>
+                            <h2 id="modal-title">${details.title}</h2>
                             <div class="anime-details__stats">
                                 <span class="stat">⭐ ${details.score}</span>
                                 <span class="stat">📺 ${details.episodes} Episodes</span>
@@ -406,8 +402,12 @@ class App {
                     ` : ''}
                 </div>
             `;
+            this.activateModalFocusTrap();
+            const focusTarget = this.modal.querySelector('.close-modal') || this.modal;
+            focusTarget.focus();
         } else {
             modalBody.innerHTML = '<div class="error">Failed to load anime details</div>';
+            this.showToast('Failed to load details', 'error');
         }
     }
 
@@ -441,10 +441,91 @@ class App {
             activeLink.classList.add('active');
         }
 
-        // Re-apply filters automatically on section change
-        if (document.getElementById('filter-bar')) {
-            this.applyFilters();
+        // Re-apply search automatically on section change
+        if (document.getElementById('search-bar')) {
+            this.applySearch();
         }
+
+        // Update saved section (persist search if existing)
+        const saved = this.getSavedSearch();
+        if (saved) {
+            saved.section = section;
+            this.saveSearch(saved);
+        }
+    }
+
+    /* ================= Utility: Toasts ================= */
+    ensureToastContainer() {
+        if (!this.toastContainer) {
+            const div = document.createElement('div');
+            div.id = 'toast-container';
+            div.setAttribute('role', 'status');
+            div.setAttribute('aria-live', 'polite');
+            document.body.appendChild(div);
+            this.toastContainer = div;
+        }
+    }
+
+    showToast(message, type = 'info', timeout = 3800) {
+        this.ensureToastContainer();
+        const toast = document.createElement('div');
+        toast.className = `toast toast--${type}`;
+        toast.textContent = message;
+        this.toastContainer.appendChild(toast);
+        // Force reflow for animation
+        void toast.offsetWidth; // eslint-disable-line
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.add('hide');
+            setTimeout(() => toast.remove(), 450);
+        }, timeout);
+    }
+
+    /* ================= Utility: Skeletons ================= */
+    renderSkeletons(container, count = 6) {
+        const frag = document.createDocumentFragment();
+        for (let i = 0; i < count; i++) {
+            const sk = document.createElement('div');
+            sk.className = 'anime-card skeleton-card';
+            sk.innerHTML = `
+                <div class="skeleton skeleton-image"></div>
+                <div class="skeleton-content">
+                    <div class="skeleton skeleton-title"></div>
+                    <div class="skeleton skeleton-line"></div>
+                    <div class="skeleton skeleton-line short"></div>
+                </div>`;
+            frag.appendChild(sk);
+        }
+        container.appendChild(frag);
+    }
+
+    /* ================= Utility: Search Persistence ================= */
+    saveSearch(obj) {
+        try { localStorage.setItem('search', JSON.stringify(obj)); } catch(e) { /* ignore */ }
+    }
+    getSavedSearch() {
+        try { return JSON.parse(localStorage.getItem('search') || 'null'); } catch(e) { return null; }
+    }
+
+    /* ================= Utility: Modal Focus Trap ================= */
+    activateModalFocusTrap() {
+        const focusable = this.modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        this.modalKeydownHandler = (e) => {
+            if (this.modal.style.display !== 'flex') return; // not open
+            if (e.key === 'Tab') {
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
+            }
+        };
+        document.addEventListener('keydown', this.modalKeydownHandler, true);
     }
 }
 

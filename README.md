@@ -1,12 +1,16 @@
-# Anime News Website
+# 🌸 Sumire - Anime Discovery Platform
 
 ## Overview
-This project is an Anime News website that fetches real-time anime news from various sources and displays it in a user-friendly interface. The website features a warm color tone with a bluish vibe, providing a modern 3D UI experience.
+Sumire is a modern anime discovery platform that helps users explore upcoming releases, classic series, popular titles, and hidden gems. Built with vanilla JavaScript and a beautiful warm color palette, it provides an intuitive browsing experience with real-time data from the Jikan API.
 
-## Features
-- Fetches real-time anime news articles.
-- Displays detailed information about selected anime, including summaries and images.
-- Allows users to manage a watch list, enabling them to add or delete anime titles.
+## ✨ Features
+- **🔍 Smart Search**: Instantly search across all anime categories
+- **📚 Multiple Collections**: Upcoming, Classics, Popular, Hidden Gems, and Romance categories
+- **⭐ Personal Watchlist**: Add and manage your favorite anime
+- **🎬 Detailed Views**: Rich modals with trailers, synopsis, and metadata
+- **📱 Responsive Design**: Optimized for all screen sizes
+- **🚀 Real-time Data**: Live API integration with fallback data
+- **♿ Accessible**: Full keyboard navigation and screen reader support
 
 ## Project Structure
 ```
@@ -33,28 +37,46 @@ anime-news
 └── README.md
 ```
 
-## Setup Instructions
-1. Clone the repository:
-   ```
-   git clone <repository-url>
-   ```
-2. Navigate to the project directory:
-   ```
-   cd anime-news
-   ```
-3. Install the dependencies:
-   ```
-   npm install
-   ```
-4. Start the application:
-   ```
-   npm start
-   ```
+## 🚀 Quick Start
 
-## Usage
-- Visit the homepage to view the latest anime news.
-- Click on any news article to view more details.
-- Manage your watch list by adding or removing titles as desired.
+### Development
+```bash
+# Clone the repository
+git clone https://github.com/FarHanZzzz/Sumire.git
+cd Sumire
+
+# Install dependencies
+npm install
+
+# Start development server
+npm start
+```
+The site will be available at `http://localhost:8080` (or another port if 8080 is busy).
+
+### GitHub Pages Deployment
+1. Push your code to the `main` branch
+2. Go to Repository Settings → Pages
+3. Set Source to "Deploy from a branch"
+4. Select branch: `main`, folder: `/ (root)`
+5. Save and wait for deployment
+
+Your site will be live at: `https://FarHanZzzz.github.io/Sumire/`
+
+## 🎯 Usage
+- **🔍 Search**: Use the search bar to find specific anime titles
+- **📑 Browse Categories**: Navigate between Upcoming, Classics, Popular, Hidden Gems, and Romance
+- **⭐ Watchlist**: Click the watchlist button to save anime for later
+- **📖 Details**: Click "Details" or the play button to view full information
+- **🎬 Trailers**: Watch YouTube trailers directly from detail modals
+
+## 🛠 Tech Stack
+- **Frontend**: Vanilla JavaScript (ES6+), HTML5, CSS3
+- **API**: Jikan (MyAnimeList API)
+- **Storage**: LocalStorage for watchlist and search persistence
+- **Dev Server**: live-server with hot reload
+- **Deployment**: GitHub Pages (static hosting)
 
 ## License
 This project is licensed under the ISC License.
+
+http://127.0.0.1:50094/public/index.html
