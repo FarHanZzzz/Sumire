@@ -49,25 +49,44 @@ class App {
     }
 
     async init() {
-        await this.loadAllSections();
+        // Setup UI first for instant feedback
         this.setupNavigation();
         this.setupModal();
         this.loadWatchlist();
+        this.renderSearchBar();
+        this.attachLoadMore();
         
-        // Show first section by default
+        // Show first section and load only that section initially
         this.showSection('new');
+        // Load the first section
+        await this.loadSection('newAnime', fetchNewUpcomingAnime);
+        
+        // Preload other sections in background after a short delay
+        setTimeout(() => this.preloadOtherSections(), 1000);
     }
 
-    async loadAllSections() {
-        await Promise.all([
-            this.loadSection('newAnime', fetchNewUpcomingAnime),
-            this.loadSection('classicAnime', fetchClassic90sAnime),
-            this.loadSection('popularAnime', fetchPopularAnime),
-            this.loadSection('underratedAnime', fetchUnderratedAnime),
-            this.loadSection('hotzAnime', fetchHotzAnime)
-        ]);
-        this.attachLoadMore();
-        this.renderSearchBar();
+    async preloadOtherSections() {
+        // Load other sections in background, one by one to avoid overwhelming the API
+        const sectionsToLoad = [
+            { key: 'popularAnime', fn: fetchPopularAnime },
+            { key: 'classicAnime', fn: fetchClassic90sAnime },
+            { key: 'underratedAnime', fn: fetchUnderratedAnime },
+            { key: 'hotzAnime', fn: fetchHotzAnime }
+        ];
+
+        for (const section of sectionsToLoad) {
+            try {
+                // Only preload if not already loaded
+                if (!this.sectionCache[section.key] || this.sectionCache[section.key].length === 0) {
+                    await this.loadSection(section.key, section.fn);
+                    // Longer delay between sections to be more gentle on API
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            } catch (error) {
+                console.warn(`Failed to preload ${section.key}:`, error);
+            }
+        }
+        console.log('Background preloading complete');
     }
 
     async loadSection(key, fetchFn, append = false) {
@@ -317,14 +336,29 @@ class App {
 
     setupNavigation() {
         document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 e.preventDefault();
                 const section = e.target.getAttribute('data-section');
-                this.showSection(section);
                 
-                // Update active state
-                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
+                // Add loading state to button
+                const originalText = e.target.textContent;
+                e.target.textContent = 'Loading...';
+                e.target.disabled = true;
+                
+                try {
+                    await this.showSection(section);
+                    
+                    // Update active state after successful load
+                    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                } catch (error) {
+                    console.error('Error loading section:', error);
+                    this.showToast('Failed to load section', 'error');
+                } finally {
+                    // Restore button state
+                    e.target.textContent = originalText;
+                    e.target.disabled = false;
+                }
             });
         });
     }
@@ -411,7 +445,7 @@ class App {
         }
     }
 
-    showSection(section) {
+    async showSection(section) {
         const sections = {
             'new': document.getElementById('new-anime-section'),
             'classic': document.getElementById('classic-anime-section'),
@@ -429,8 +463,12 @@ class App {
             sections[section].style.display = 'block';
         } else {
             // Default to new anime section
-            sections['new-anime'].style.display = 'block';
+            sections['new'].style.display = 'block';
+            section = 'new';
         }
+        
+        // Load section data on-demand if not already loaded
+        await this.ensureSectionLoaded(section);
         
         // Update active navigation state
         document.querySelectorAll('.nav-links a').forEach(link => {
@@ -451,6 +489,39 @@ class App {
         if (saved) {
             saved.section = section;
             this.saveSearch(saved);
+        }
+    }
+
+    async ensureSectionLoaded(section) {
+        const sectionMap = {
+            'new': { key: 'newAnime', fn: fetchNewUpcomingAnime },
+            'classic': { key: 'classicAnime', fn: fetchClassic90sAnime },
+            'popular': { key: 'popularAnime', fn: fetchPopularAnime },
+            'underrated': { key: 'underratedAnime', fn: fetchUnderratedAnime },
+            'hotz': { key: 'hotzAnime', fn: fetchHotzAnime }
+        };
+
+        const sectionConfig = sectionMap[section];
+        if (!sectionConfig) return;
+
+        // Check if section is already loaded
+        if (this.sectionCache[sectionConfig.key] && this.sectionCache[sectionConfig.key].length > 0) {
+            return; // Already loaded
+        }
+
+        // Show loading state while fetching
+        const container = this.containers[sectionConfig.key];
+        if (container) {
+            container.innerHTML = this.createSkeletonLoader();
+        }
+
+        try {
+            await this.loadSection(sectionConfig.key, sectionConfig.fn);
+        } catch (error) {
+            console.error(`Failed to load ${section} section:`, error);
+            if (container) {
+                container.innerHTML = '<div class="error-state">Failed to load anime. Please try again later.</div>';
+            }
         }
     }
 
